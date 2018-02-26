@@ -1,54 +1,68 @@
-FROM debian:jessie
-LABEL maintainer="jean.milot"
+FROM alpine:3.6
+LABEL maintainer="Pascal A. <pascalito@gmail.com>" \
+      org.label-schema.url="https://github.com/pad92/docker_nagios/blob/master/README.md" \
+      org.label-schema.build-date=$BUILD_DATE \
+      org.label-schema.version=$VERSION \
+      org.label-schema.vcs-url="https://github.com/pad92/docker_nagios.git" \
+      org.label-schema.vcs-ref=$VCS_REF \
+      org.label-schema.docker.dockerfile="/Dockerfile" \
+      org.label-schema.description="Ansible on alpine docker image" \
+      org.label-schema.schema-version="1.0"
 
-EXPOSE 22
+RUN apk --update add \
+        nagios \
+        nagios-plugins \
+        nagios-plugins-mrtg \ 
+        nagios-plugins-smtp \ 
+        nagios-plugins-icmp \ 
+        nagios-plugins-snmp \ 
+        nagios-plugins-log \ 
+        nagios-plugins-disk_smb \ 
+        nagios-plugins-ups \ 
+        nagios-plugins-dhcp \ 
+        nagios-plugins-breeze \ 
+        nagios-plugins-ircd \ 
+        nagios-plugins-tcp \ 
+        nagios-plugins-uptime \ 
+        nagios-plugins-cluster \ 
+        nagios-plugins-swap \ 
+        nagios-plugins-mysql \ 
+        nagios-plugins-time \ 
+        nagios-plugins-ldap \ 
+        nagios-plugins-nt \ 
+        nagios-plugins-ping \ 
+        nagios-plugins-by_ssh \ 
+        nagios-plugins-dns \ 
+        nagios-plugins-mrtgtraf \ 
+        nagios-plugins-disk \ 
+        nagios-plugins-wave \ 
+        nagios-plugins-mailq \ 
+        nagios-plugins-real \ 
+        nagios-plugins-rpc \ 
+        nagios-plugins-ifoperstatus \ 
+        nagios-plugins-users \ 
+        nagios-plugins-procs \ 
+        nagios-plugins-ide_smart \ 
+        nagios-plugins-nwstat \ 
+        nagios-plugins-http \ 
+        nagios-plugins-fping \ 
+        nagios-plugins-dig \ 
+        nagios-plugins-radius \ 
+        nagios-plugins-sensors \ 
+        nagios-plugins-hpjd \ 
+        nagios-plugins-ifstatus \ 
+        nagios-plugins-overcr \ 
+        nagios-plugins-nagios \ 
+        nagios-plugins-all \ 
+        nagios-plugins-ntp \ 
+        nagios-plugins \ 
+        nagios-plugins-dbi \ 
+        nagios-plugins-pgsql \ 
+        nagios-plugins-ssh \ 
+        nagios-plugins-load \ 
+        nagios-plugins-dummy \ 
+        nagios-plugins-file_age \
+        busybox
 
-RUN apt-get update && apt-get install -y \
-    apt-utils \
-    wget \
-    build-essential \
-    libgd2-xpm-dev \
-    openssl \
-    libssl-dev \
-    xinetd \
-    apache2-utils \
-    unzip \
-    openssh-server \
-    curl \
-    less \
-    vim \
-    && apt-get clean
-
-RUN cd /usr/local/src && wget https://downloads.sourceforge.net/project/nagios/nagios-4.x/nagios-4.3.4/nagios-4.3.4.tar.gz && tar xf nagios-4.3.4.tar.gz
-
-RUN useradd nagios && groupadd nagcmd && usermod -a -G nagcmd nagios
-
-RUN cd /usr/local/src/nagios-4.3.4/ && ./configure --with-nagios-group=nagios --with-command-group=nagcmd && make all && make install && make install-commandmode && make install-init && make install-config
-RUN cd /usr/local/src && wget https://nagios-plugins.org/download/nagios-plugins-2.2.1.tar.gz && tar xf nagios-plugins-2.2.1.tar.gz
-RUN cd /usr/local/src/nagios-plugins-2.2.1 && ./configure --with-nagios-user=nagios --with-nagios-group=nagios --prefix=/usr/local/nagios/ && make && make install
-RUN rm /usr/local/src/*tar.gz
-
-ENV TZ=Europe/Paris
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
-
-
-RUN mkdir -p ~nagios/.ssh && chmod 700 ~nagios/.ssh
-ADD ssh/ /home/nagios/.ssh/
-ADD nagios/ /usr/local/nagios/etc/
-RUN chown nagios: ~nagios -R && chown nagios: /usr/local/nagios/etc/* -R
-
-
-
-RUN find /etc/systemd/system \
-         /lib/systemd/system \
-         -path '*.wants/*' \
-         -not -name '*journald*' \
-         -not -name '*systemd-tmpfiles*' \
-         -not -name '*systemd-user-sessions*' \
-         -exec rm \{} \;
-
-RUN systemctl set-default multi-user.target
-
-RUN systemctl enable ssh && systemctl enable nagios
-
-CMD ["/bin/bash", "-c", "exec /sbin/init --log-target=journal 3>&1"]
+USER nagios
+CMD /usr/sbin/nagios /etc/nagios/nagios.cfg
